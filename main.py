@@ -5,7 +5,7 @@ import cv2
 import matplotlib
 from tensorflow.contrib.learn.python.learn.datasets import mnist
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 import tensorflow as tf
 import numpy as np
 
@@ -20,6 +20,9 @@ transformed_testing_file = "traffic-signs-data/xformed_test.p"
 def to_flattened_greyscale(image_list):
     return [np.reshape(cv2.cvtColor(i, cv2.COLOR_BGR2GRAY), [1024]) for i in image_list]
 
+def to_flattened_rgb(image_list):
+    return [(np.reshape(i, [1024, 3]))/255. for i in image_list]
+
 
 def get_or_create_transformed_data(xformed_file, orig_file):
     global n_classes
@@ -32,7 +35,7 @@ def get_or_create_transformed_data(xformed_file, orig_file):
             # how many classes are in the dataset
             data = pickle.load(f)
             n_classes = len(set(data['labels']))
-            data['features'] = to_flattened_greyscale(data['features'])
+            data['features'] = to_flattened_rgb(data['features'])
             data['labels'] = mnist.dense_to_one_hot(data['labels'], n_classes)
             pickle.dump(data, open(xformed_file, "wb"))
     return data
@@ -65,19 +68,19 @@ print("Number of testing examples =", n_test)
 print("Image data shape =", image_shape)
 print("Number of classes =", n_classes)
 
-import matplotlib
-import matplotlib.pyplot as plt
+# import matplotlib
+# import matplotlib.pyplot as plt
 import numpy as np
 
 # Histogram of sign types
-plt.figure()
-n, bins, patches = plt.hist(y_train, bins=43, alpha=0.5, label="training")
-n, bins, patches = plt.hist(y_test, bins=43, alpha=0.5, label="test")
-plt.title("Sign counts")
-plt.xlabel("Sign type")
-plt.ylabel("Count")
-plt.legend(loc='upper right')
-plt.show()
+# plt.figure()
+# n, bins, patches = plt.hist(y_train, bins=43, alpha=0.5, label="training")
+# n, bins, patches = plt.hist(y_test, bins=43, alpha=0.5, label="test")
+# plt.title("Sign counts")
+# plt.xlabel("Sign type")
+# plt.ylabel("Count")
+# plt.legend(loc='upper right')
+# plt.show()
 
 # # heatmap of sign locations in image
 # plt.figure()
@@ -103,7 +106,7 @@ n_input = 32 * 32  # input image pixels
 # Store layers weight & bias
 weights = {
     # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 32])),
+    'wc1': tf.Variable(tf.random_normal([5, 5, 3, 32])),
     # 5x5 conv, 32 inputs, 64 outputs
     'wc2': tf.Variable(tf.random_normal([5, 5, 32, 64])),
     # fully connected, 7*7*64 inputs, 1024 outputs
@@ -130,8 +133,13 @@ def cnn():
     # Network Parameters
     dropout = 0.75  # Dropout, probability to keep units
 
+    print("learning_rate=", learning_rate)
+    print("training_iters=", training_iters)
+    print("batch_size=", batch_size)
+    print("dropout=", dropout)
+
     # tf Graph input
-    x = tf.placeholder(tf.float32, [None, n_input])
+    x = tf.placeholder(tf.float32, [None, n_input, 3])
     y = tf.placeholder(tf.float32, [None, n_classes])
     keep_prob = tf.placeholder(tf.float32)  # dropout (keep probability)
 
@@ -211,7 +219,7 @@ def maxpool2d(x, k=2):
 # Create model
 def conv_net(x, weights, biases, dropout):
     # Reshape input picture
-    x = tf.reshape(x, shape=[-1, 32, 32, 1])
+    x = tf.reshape(x, shape=[-1, 32, 32, 3])
 
     # Convolution Layer
     conv1 = conv2d(x, weights['wc1'], biases['bc1'])
