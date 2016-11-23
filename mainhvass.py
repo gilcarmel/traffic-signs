@@ -18,6 +18,17 @@ testing_file = "traffic-signs-data/test.p"
 transformed_training_file = "traffic-signs-data/xformed_train_hvass.p"
 transformed_testing_file = "traffic-signs-data/xformed_test_hvass.p"
 
+import scipy.misc
+import os
+
+
+def save_images(images, path):
+    index = 0
+    os.makedirs(path)
+    for image in images:
+        scipy.misc.toimage(image, cmin=0.0, cmax=255.0).save(path + str(index) + '.jpg')
+        index += 1
+
 
 def to_flattened_greyscale(image_list):
     return [np.reshape(cv2.cvtColor(i, cv2.COLOR_BGR2GRAY), [1024])/255. for i in image_list]
@@ -37,7 +48,8 @@ def get_or_create_transformed_data(xformed_file, orig_file):
             # how many classes are in the dataset
             data = pickle.load(f)
             n_classes = len(set(data['labels']))
-            data['features'] = to_flattened_greyscale(data['features'])
+            save_images(data['features'][:512], "traffic-signs-data/images/" + orig_file + "/")
+            data['features'] = to_flattened_rgb(data['features'])
             data['one_hot'] = mnist.dense_to_one_hot(data['labels'], n_classes)
             pickle.dump(data, open(xformed_file, "wb"))
     return data
@@ -52,6 +64,8 @@ test = get_or_create_transformed_data(transformed_testing_file, testing_file)
 
 X_train, y_train, y_train_classes = np.array(train['features'], dtype=np.float32), np.array(train['one_hot'], dtype=np.float32), np.array(train['labels'])
 X_test, y_test, y_test_classes = np.array(test['features'], dtype=np.float32), np.array(test['one_hot'], dtype=np.float32), np.array(test['labels'])
+
+
 
 ### To start off let's do a basic data summary.
 
@@ -98,7 +112,7 @@ img_size_flat = img_size * img_size
 img_shape = (img_size, img_size)
 
 # Number of colour channels for the images: 1 channel for gray-scale.
-num_channels = 1
+num_channels = 3
 
 # Number of classes, one class for each of 10 digits.
 num_classes = n_classes
@@ -251,13 +265,15 @@ def new_fc_layer(input,          # The previous layer.
 
 
 
-x = tf.placeholder(tf.float32, shape=[None, img_size_flat], name='x')
+x = tf.placeholder(tf.float32, shape=[None, img_size_flat, num_channels], name='x')
 
 x_image = tf.reshape(x, [-1, img_size, img_size, num_channels])
 
 y_true = tf.placeholder(tf.float32, shape=[None, num_classes], name='y_true')
 
 y_true_cls = tf.argmax(y_true, dimension=1)
+
+keep_prob = tf.placeholder(tf.float32)  # dropout (keep probability)
 
 layer_conv1, weights_conv1 = \
     new_conv_layer(input=x_image,
@@ -287,6 +303,8 @@ layer_fc1 = new_fc_layer(input=layer_flat,
                          num_inputs=num_features,
                          num_outputs=fc_size,
                          use_relu=True)
+
+layer_fc1 = tf.nn.dropout(layer_fc1, keep_prob)
 
 print("fc1: ", layer_fc1)
 
@@ -346,6 +364,8 @@ def optimize(num_iterations):
     # Start-time used for printing time-usage below.
     start_time = time.time()
 
+    dropout = 0.55
+
     for i in range(total_iterations,
                    total_iterations + num_iterations):
 
@@ -357,7 +377,8 @@ def optimize(num_iterations):
         # Put the batch into a dict with the proper names
         # for placeholder variables in the TensorFlow graph.
         feed_dict_train = {x: x_batch,
-                           y_true: y_true_batch}
+                           y_true: y_true_batch,
+                           keep_prob: dropout}
 
         # Run the optimizer using this batch of training data.
         # TensorFlow assigns the variables in feed_dict_train
@@ -456,7 +477,7 @@ def print_test_accuracy(show_example_errors=False,
 
     # Number of images in the test-set.
     num_test = len(X_test)
-    num_test = 512
+    # num_test = 512
 
     # Allocate an array for the predicted classes which
     # will be calculated in batches and filled into this array.
@@ -481,7 +502,8 @@ def print_test_accuracy(show_example_errors=False,
 
         # Create a feed-dict with these images and labels.
         feed_dict = {x: images,
-                     y_true: labels}
+                     y_true: labels,
+                     keep_prob: 1.}
 
         # Calculate the predicted class using TensorFlow.
         cls_pred[i:j] = session.run(y_pred_cls, feed_dict=feed_dict)
@@ -534,7 +556,7 @@ optimize(num_iterations=900) # We performed 100 iterations above.
 
 print_test_accuracy(show_example_errors=True)
 
-optimize(num_iterations=9000) # We performed 1000 iterations above.
-
-print_test_accuracy(show_example_errors=True,
-                    show_confusion_matrix=True)
+for i in np.arange(28):
+    optimize(num_iterations=1000) # We performed 1000 iterations above.
+    print_test_accuracy(show_example_errors=True,
+                        show_confusion_matrix=True)
