@@ -109,7 +109,7 @@ filter_size2 = 5          # Convolution filters are 5 x 5 pixels.
 num_filters2 = 36         # There are 36 of these filters.
 
 # Fully-connected layer.
-fc_size = 128             # Number of neurons in fully-connected layer.
+fc_size = 256             # Number of neurons in fully-connected layer.
 
 # We know that sign images are 32 pixels in each dimension.
 img_size = 32
@@ -291,6 +291,8 @@ layer_conv1, weights_conv1 = \
                    num_filters=num_filters1,
                    use_pooling=True)
 
+layer_conv1 = tf.nn.dropout(layer_conv1, keep_prob)
+
 print("conv1: ", layer_conv1)
 
 layer_conv2, weights_conv2 = \
@@ -300,16 +302,21 @@ layer_conv2, weights_conv2 = \
                    num_filters=num_filters2,
                    use_pooling=True)
 
+layer_conv2 = tf.nn.dropout(layer_conv2, keep_prob)
+
 print("conv2: ", layer_conv2)
 
-layer_flat, num_features = flatten_layer(layer_conv2)
+layer2_flat, layer2_num_features = flatten_layer(layer_conv2)
+layer1_flat, layer1_num_features = flatten_layer(layer_conv1)
 
-print("flat: ", layer_flat)
+print(layer1_flat)
+print(layer2_flat)
 
-print("num_features: ", num_features)
+concat_flat = tf.concat(1, [layer1_flat, layer2_flat])
+print(concat_flat)
 
-layer_fc1 = new_fc_layer(input=layer_flat,
-                         num_inputs=num_features,
+layer_fc1 = new_fc_layer(input=concat_flat,
+                         num_inputs=layer1_num_features + layer2_num_features,
                          num_outputs=fc_size,
                          use_relu=True)
 
@@ -367,7 +374,7 @@ def optimize(num_iterations):
     # Start-time used for printing time-usage below.
     start_time = time.time()
 
-    dropout = 0.55
+    dropout = 0.65
 
     for i in range(total_iterations,
                    total_iterations + num_iterations):
