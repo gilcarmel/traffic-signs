@@ -18,7 +18,7 @@ transformed_testing_file = "traffic-signs-data/xformed_test.p"
 
 
 def to_flattened_greyscale(image_list):
-    return [np.reshape(cv2.cvtColor(i, cv2.COLOR_BGR2GRAY), [1024]) for i in image_list]
+    return [np.reshape(cv2.cvtColor(i, cv2.COLOR_BGR2GRAY), [1024])/255. for i in image_list]
 
 def to_flattened_rgb(image_list):
     return [(np.reshape(i, [1024, 3]))/255. for i in image_list]

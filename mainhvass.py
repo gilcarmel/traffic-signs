@@ -102,7 +102,7 @@ num_filters2 = 36         # There are 36 of these filters.
 # Fully-connected layer.
 fc_size = 128             # Number of neurons in fully-connected layer.
 
-# We know that sign images are 28 pixels in each dimension.
+# We know that sign images are 32 pixels in each dimension.
 img_size = 32
 
 # Images are stored in one-dimensional arrays of this length.
