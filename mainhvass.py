@@ -22,23 +22,30 @@ import scipy.misc
 import os
 
 
-def save_images(images, path):
+def save_images(images, path, cmin=0.0, cmax=255.0):
     index = 0
-    os.makedirs(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
     for image in images:
-        scipy.misc.toimage(image, cmin=0.0, cmax=255.0).save(path + str(index) + '.jpg')
+        scipy.misc.toimage(image.reshape(image_shape), cmin=cmin, cmax=cmax).save(path + str(index) + '.jpg')
         index += 1
 
 
 def to_flattened_greyscale(image_list):
     return [np.reshape(cv2.cvtColor(i, cv2.COLOR_BGR2GRAY), [1024])/255. for i in image_list]
 
-def to_flattened_rgb(image_list):
-    return [(np.reshape(i, [1024, 3]))/255. for i in image_list]
 
+def normalize_image(image):
+    max_pixel = np.amax(image)
+    min_pixel = np.amin(image)
+    return (image - min_pixel)/(max_pixel - min_pixel)
+
+
+def to_flattened_rgb(image_list):
+    return [normalize_image((np.reshape(i, [1024, 3]))/255.) for i in image_list]
 
 def get_or_create_transformed_data(xformed_file, orig_file):
-    global n_classes
+    global n_classes, image_shape
     try:
         with open(xformed_file, mode='rb') as f:
             data = pickle.load(f)
@@ -48,8 +55,10 @@ def get_or_create_transformed_data(xformed_file, orig_file):
             # how many classes are in the dataset
             data = pickle.load(f)
             n_classes = len(set(data['labels']))
+            image_shape = data['features'][0].shape
             save_images(data['features'][:512], "traffic-signs-data/images/" + orig_file + "/")
             data['features'] = to_flattened_rgb(data['features'])
+            save_images(data['features'][:512], "traffic-signs-data/images_norm/" + orig_file + "/", 0.0, 1.0)
             data['one_hot'] = mnist.dense_to_one_hot(data['labels'], n_classes)
             pickle.dump(data, open(xformed_file, "wb"))
     return data
