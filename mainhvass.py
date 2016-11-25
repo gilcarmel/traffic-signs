@@ -118,7 +118,7 @@ img_size = 32
 img_size_flat = img_size * img_size
 
 # Tuple with height and width of images used to reshape arrays.
-img_shape = (img_size, img_size)
+img_shape = (img_size, img_size, 3)
 
 # Number of colour channels for the images: 1 channel for gray-scale.
 num_channels = 3
@@ -341,12 +341,6 @@ correct_prediction = tf.equal(y_pred_cls, y_true_cls)
 
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-session = tf.Session()
-
-session.run(tf.initialize_all_variables())
-
-train_batch_size = 64
-
 # Counter for total number of iterations performed so far.
 total_iterations = 0
 
@@ -418,29 +412,28 @@ def optimize(num_iterations):
     print("Time usage: " + str(timedelta(seconds=int(round(time_dif)))))
 
 
-def plot_example_errors(cls_pred, correct):
-    pass
-    # # This function is called from print_test_accuracy() below.
-    #
-    # # cls_pred is an array of the predicted class-number for
-    # # all images in the test-set.
-    #
-    # # correct is a boolean array whether the predicted class
-    # # is equal to the true class for each image in the test-set.
-    #
-    # # Negate the boolean array.
-    # incorrect = (correct == False)
-    #
-    # # Get the images from the test-set that have been
-    # # incorrectly classified.
-    # images = X_test[incorrect]
-    #
-    # # Get the predicted classes for those images.
-    # cls_pred = cls_pred[incorrect]
-    #
-    # # Get the true classes for those images.
-    # cls_true = y_test_classes[incorrect]
-    #
+def plot_example_errors(cls_pred, cls_true, correct):
+    # This function is called from print_test_accuracy() below.
+
+    # cls_pred is an array of the predicted class-number for
+    # all images in the test-set.
+
+    # correct is a boolean array whether the predicted class
+    # is equal to the true class for each image in the test-set.
+
+    # Negate the boolean array.
+    incorrect = (correct == False)
+
+    # Get the images from the test-set that have been
+    # incorrectly classified.
+    images = X_test[incorrect]
+
+    # Get the predicted classes for those images.
+    cls_pred = cls_pred[incorrect]
+
+    # Get the true classes for those images.
+    cls_true = cls_true[incorrect]
+
     # # Plot the first 9 images.
     # plot_images(images=images[0:9],
     #             cls_true=cls_true[0:9],
@@ -539,33 +532,38 @@ def print_test_accuracy(show_example_errors=False,
     msg = "Accuracy on Test-Set: {0:.1%} ({1} / {2})"
     print(msg.format(acc, correct_sum, num_test))
 
-    # # Plot some examples of mis-classifications, if desired.
-    # if show_example_errors:
-    #     print("Example errors:")
-    #     plot_example_errors(cls_pred=cls_pred, correct=correct)
-    #
-    # # Plot the confusion matrix, if desired.
+    # Plot some examples of mis-classifications, if desired.
+    if show_example_errors:
+        print("Example errors:")
+        plot_example_errors(cls_pred=cls_pred, cls_true=cls_true, correct=correct)
+
+    # Plot the confusion matrix, if desired.
     # if show_confusion_matrix:
     #     print("Confusion Matrix:")
     #     plot_confusion_matrix(cls_pred=cls_pred)
 
 
-print_test_accuracy()
+with tf.Session() as session:
 
-optimize(num_iterations=1)
+    session.run(tf.initialize_all_variables())
 
-print_test_accuracy()
+    train_batch_size = 256
+    print_test_accuracy()
 
-optimize(num_iterations=99) # We already performed 1 iteration above.
+    optimize(num_iterations=1)
 
-print_test_accuracy(show_example_errors=True)
+    print_test_accuracy()
 
-optimize(num_iterations=900) # We performed 100 iterations above.
+    optimize(num_iterations=99) # We already performed 1 iteration above.
+
+    print_test_accuracy(show_example_errors=True)
+
+    optimize(num_iterations=900) # We performed 100 iterations above.
 
 
-print_test_accuracy(show_example_errors=True)
+    print_test_accuracy(show_example_errors=True)
 
-for i in np.arange(28):
-    optimize(num_iterations=1000) # We performed 1000 iterations above.
-    print_test_accuracy(show_example_errors=True,
-                        show_confusion_matrix=True)
+    for i in np.arange(28):
+        optimize(num_iterations=1000) # We performed 1000 iterations above.
+        print_test_accuracy(show_example_errors=True,
+                            show_confusion_matrix=True)
