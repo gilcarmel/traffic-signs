@@ -98,18 +98,16 @@ print("Number of classes =", n_classes)
 # import matplotlib.pyplot as plt
 import numpy as np
 
-n_input = 32 * 32  # input image pixels
-
 # Convolutional Layer 1.
 filter_size1 = 5          # Convolution filters are 5 x 5 pixels.
-num_filters1 = 16         # There are 16 of these filters.
+num_filters1 = 32         # Num of layer 1 filters
 
 # Convolutional Layer 2.
 filter_size2 = 5          # Convolution filters are 5 x 5 pixels.
-num_filters2 = 36         # There are 36 of these filters.
+num_filters2 = 50         # Number of layer 2 filters
 
 # Fully-connected layer.
-fc_size = 256             # Number of neurons in fully-connected layer.
+fc_size = 100             # Number of neurons in fully-connected layer.
 
 # We know that sign images are 32 pixels in each dimension.
 img_size = 32
@@ -305,6 +303,12 @@ layer_conv2, weights_conv2 = \
 layer_conv2 = tf.nn.dropout(layer_conv2, keep_prob)
 
 print("conv2: ", layer_conv2)
+
+#subsample layer1 again before connecting to fc1
+layer_conv1 = tf.nn.max_pool(value=layer_conv1,
+                       ksize=[1, 2, 2, 1],
+                       strides=[1, 2, 2, 1],
+                       padding='SAME')
 
 layer2_flat, layer2_num_features = flatten_layer(layer_conv2)
 layer1_flat, layer1_num_features = flatten_layer(layer_conv1)
